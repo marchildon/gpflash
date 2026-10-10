@@ -1,0 +1,17 @@
+GpFlash contains no third-party code. It is header-only and is compiled and linked against the libraries below,
+which the user installs separately. Each is distributed under its own license, which governs that library.
+
+Armadillo        Apache License 2.0                                     https://arma.sourceforge.net
+NLopt            MIT, with BSD-licensed algorithms such as SLSQP;       https://github.com/stevengj/nlopt
+                 builds that include its Luksan routines are LGPL-2.1+
+                 as a whole
+HDF5             BSD-3-Clause style (The HDF Group)                     https://www.hdfgroup.org
+OpenBLAS         BSD-3-Clause, or the license of whichever BLAS/LAPACK  https://www.openblas.net
+                 the build links instead
+OpenMP runtime   the compiler's: GCC's libgomp under GPL-3.0 with the
+                 GCC Runtime Library Exception, LLVM's libomp under
+                 Apache-2.0 with LLVM exceptions
+
+Used only by the tests:
+
+MPICH            BSD-style (MPICH license)                              https://www.mpich.org

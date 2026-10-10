@@ -1,0 +1,32 @@
+# The package config find_package(GpFlash) reads. It finds the dependencies the build found, then includes the
+# targets file, which names their imported targets.
+include(CMakeFindDependencyMacro)
+
+# The BLAS the package was built against, so a consumer finds the same one.
+set(GPFLASH_BLA_VENDOR "@GPFLASH_BLA_VENDOR@")
+macro(gpflash_find_dependency)
+    find_dependency(${ARGV})
+endmacro()
+# The consumer's BLA_VENDOR and BLA_SIZEOF_INTEGER are put back after the include, an empty one unset. Here rather
+# than in the included file, which find_dependency leaves early on a missing dependency.
+set(_gpflash_caller_bla_vendor "${BLA_VENDOR}")
+set(_gpflash_caller_bla_sizeof_integer "${BLA_SIZEOF_INTEGER}")
+include("${CMAKE_CURRENT_LIST_DIR}/GpFlashDependencies.cmake")
+foreach(_gpflash_bla_var IN ITEMS BLA_VENDOR BLA_SIZEOF_INTEGER)
+    string(TOLOWER "_gpflash_caller_${_gpflash_bla_var}" _gpflash_saved_name)
+    if("${${_gpflash_saved_name}}" STREQUAL "")
+        unset(${_gpflash_bla_var})
+    else()
+        set(${_gpflash_bla_var} "${${_gpflash_saved_name}}")
+    endif()
+    unset(${_gpflash_saved_name})
+endforeach()
+unset(_gpflash_bla_var)
+unset(_gpflash_saved_name)
+unset(GPFLASH_BLA_VENDOR)
+# find_dependency returns from the included file only, so a missing dependency is caught here.
+if(DEFINED GpFlash_FOUND AND NOT GpFlash_FOUND)
+    return()
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/GpFlashTargets.cmake")

@@ -1,77 +1,8 @@
-# Build output
-build/
-build_*/
-cmake-build-*/
-out/
+# No trailing slash, so it also matches a `build` symlink; `build/` matches directories only.
+/build
 
-# CMake artifacts
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-CTestTestfile.cmake
-Testing/
-install_manifest.txt
-compile_commands.json
-_deps/
-*.cmake.in.log
+# Every other build directory, at any depth, such as tst/build or a builds/ tree.
+**/build*/
 
-# Compiled objects and libraries
-*.o
-*.obj
-*.a
-*.lib
-*.so
-*.so.*
-*.dylib
-*.dll
-*.gch
-*.pch
-*.d
-
-# Executables
-*.exe
-*.out
-*.app
-
-# Editors and IDEs
-.claude/
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.cache/
-.clangd/
-.ccls-cache/
-
-# Merge and patch leftovers
-*.orig
-*.rej
-
-# macOS
+# macOS Finder metadata.
 .DS_Store
-.AppleDouble
-._*
-
-# Profiling and debug output
-*.dSYM/
-perf.data*
-*.gcda
-*.gcno
-callgrind.out.*
-core
-*.core
-
-# Generated API documentation (Doxygen)
-docs/html/
-docs/latex/
-docs/xml/
-
-# Python (plotting and benchmark helper scripts)
-__pycache__/
-*.pyc
-.venv/
-venv/
-
-# Local parking lot for retired files pending review, never committed
-to_delete/
