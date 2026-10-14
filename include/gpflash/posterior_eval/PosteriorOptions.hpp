@@ -23,8 +23,8 @@ struct PosteriorOptions {
 
 namespace detail {
 
-// Whether no quantity was asked for, whatever check_query_points says. Not an error: a query then returns an empty PosteriorResult, which is
-// what every field already means when its flag is clear.
+// Whether no quantity was asked for, whatever check_query_points says. Not an error: a query then returns an empty
+// PosteriorResult, which is what every field already means when its flag is clear.
 inline bool is_empty_request(const PosteriorOptions& post_opts) {
     return !post_opts.return_mean && !post_opts.return_var && !post_opts.return_mean_gradient
             && !post_opts.return_var_gradient;

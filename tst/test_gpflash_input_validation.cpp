@@ -872,9 +872,10 @@ bool test_post_points(const char* name) {
     const bool unchecked_same = same_result(checked_vec_result, unchecked_vec_result)
             && same_result(checked_mat_result, unchecked_mat_result);
     // The debug postcondition may still catch the non-finite result, but under the result's name, not the argument's.
-    const bool unchecked_skipped =
-            !rejects_naming("x_post_vec", [&] { posterior.eval(x_nan_vec, post_opts_unchecked); })
-            && !rejects_naming("X_ndim_npost_mat", [&] { posterior.eval(X_inf_mat, post_opts_unchecked); });
+    const auto eval_vec_unchecked = [&] { posterior.eval(x_nan_vec, post_opts_unchecked); };
+    const auto eval_mat_unchecked = [&] { posterior.eval(X_inf_mat, post_opts_unchecked); };
+    const bool unchecked_skipped = !rejects_naming("x_post_vec", eval_vec_unchecked)
+            && !rejects_naming("X_ndim_npost_mat", eval_mat_unchecked);
 
     char detail[kDetailLen];
     std::snprintf(
@@ -887,9 +888,7 @@ bool test_post_points(const char* name) {
             static_cast<int>(unchecked_same),
             static_cast<int>(unchecked_skipped));
     return report(
-            name,
-            good_ok && dimension_rejected && non_finite_rejected && unchecked_same && unchecked_skipped,
-            detail);
+            name, good_ok && dimension_rejected && non_finite_rejected && unchecked_same && unchecked_skipped, detail);
 }
 
 // Asserts each matrix's bound method is one of the enum's methods.

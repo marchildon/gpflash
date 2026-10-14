@@ -874,9 +874,10 @@ bool test_save_refuses_foreign_destination() {
 }
 
 // -----------------------------------------------------------------------
-// Test 19: a save whose writes fail part way through must raise and remove its .tmp scratch file. A file-size limit
-// of half the full file lets the header arrays through and fails a later array. Windows has no such limit.
-#if !defined(_WIN32)
+// Test 19: a save whose writes fail part way through must raise, remove its .tmp scratch file and leave no file open.
+// A file-size limit of half the full file lets the header arrays through and fails a later array. Skipped on
+// Windows, which has no such limit, and on HDF5 1.10 (GPFLASH_HDF5_CLOSES_AFTER_FAILED_WRITE).
+#if !defined(_WIN32) && GPFLASH_HDF5_CLOSES_AFTER_FAILED_WRITE
 bool test_failed_save_removes_scratch_file() {
     const GpPosterior posterior = make_fitted_posterior();
     const std::string path = "test_cache_failed_save.h5";
@@ -899,18 +900,20 @@ bool test_failed_save_removes_scratch_file() {
 
     const bool scratch_removed = !std::ifstream(temp_path).good();
     const bool destination_absent = !std::ifstream(path).good();
+    const bool files_closed = H5Fget_obj_count(H5F_OBJ_ALL, H5F_OBJ_FILE) == 0;
     gpf_fs::remove(temp_path);
     gpf_fs::remove(path);
 
-    const bool pass = raised && scratch_removed && destination_absent;
+    const bool pass = raised && scratch_removed && destination_absent && files_closed;
     char detail[gpflash_test::kDetailLen];
     std::snprintf(
             detail,
             sizeof(detail),
-            "raised %d  scratch_removed %d  destination_absent %d",
+            "raised %d  scratch_removed %d  destination_absent %d  files_closed %d",
             raised ? 1 : 0,
             scratch_removed ? 1 : 0,
-            destination_absent ? 1 : 0);
+            destination_absent ? 1 : 0,
+            files_closed ? 1 : 0);
     report("failed_save_removes_scratch_file", pass, detail);
 
     return pass;
@@ -1514,10 +1517,12 @@ int main() {
     ok &= test_model_info_survives_resave();
     ok &= test_bound_method_round_trip();
     ok &= test_summary_reports_mean_model_constant();
-#if !defined(_WIN32)
-    ok &= test_failed_save_removes_scratch_file();
-#else
+#if defined(_WIN32)
     std::printf("  %-42s SKIPPED  no file-size limit on Windows\n", "failed_save_removes_scratch_file");
+#elif !GPFLASH_HDF5_CLOSES_AFTER_FAILED_WRITE
+    std::printf("  %-42s SKIPPED  needs HDF5 1.12 or later\n", "failed_save_removes_scratch_file");
+#else
+    ok &= test_failed_save_removes_scratch_file();
 #endif
     ok &= test_default_cache_path_names_kernel_and_shape();
     ok &= test_header_slot_layout_is_pinned();

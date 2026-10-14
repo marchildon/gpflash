@@ -1,0 +1,145 @@
+# Builds the Python wheels and sdist and tests each wheel, after every push to main, and publishes to PyPI when a
+# GitHub release is published. A manual run (workflow_dispatch) tests any branch, and can publish to TestPyPI to try a
+# release first. Pull requests do not run it: a run takes several hundred billed minutes on a private repository.
+#
+# Publishing uses PyPI trusted publishing: no token is stored. Before the first release, add this repository and
+# workflow (wheels.yml, environment "pypi") as a trusted publisher on the PyPI project, and likewise on TestPyPI with
+# environment "testpypi". Publishing runs only in the public repository, where the trusted publishers point.
+name: Wheels
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      platforms:
+        description: "Which platforms to build wheels for"
+        type: choice
+        options: [all, linux, macos, windows]
+        default: all
+      publish_to_testpypi:
+        description: "Publish the built distributions to TestPyPI (needs every platform)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  # The runners, one per wheel platform: Linux x86_64 and aarch64 (native), macOS arm64 and x86_64, Windows x64. A
+  # manual run can keep one platform, so a fix for it costs one runner rather than five.
+  plan:
+    name: Choose platforms
+    runs-on: ubuntu-24.04
+    outputs:
+      include: ${{ steps.pick.outputs.include }}
+    steps:
+      - id: pick
+        env:
+          PLATFORMS: ${{ inputs.platforms || 'all' }}
+        run: |
+          runners='[
+            {"platform": "linux",   "os": "ubuntu-24.04"},
+            {"platform": "linux",   "os": "ubuntu-24.04-arm"},
+            {"platform": "macos",   "os": "macos-15",       "macos_deployment_target": "15.0"},
+            {"platform": "macos",   "os": "macos-15-intel", "macos_deployment_target": "15.0"},
+            {"platform": "windows", "os": "windows-2025"}
+          ]'
+          include=$(jq -c --arg p "$PLATFORMS" '[.[] | select($p == "all" or .platform == $p)]' <<< "$runners")
+          echo "include=$include" >> "$GITHUB_OUTPUT"
+
+  build_wheels:
+    name: Wheels on ${{ matrix.os }}
+    needs: plan
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.include) }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      # Windows builds its libraries from source, OpenBLAS alone taking almost two hours, so they are cached, keyed on
+      # the script that builds them. The script reuses a restored install, and only a complete one is saved.
+      - name: Restore Windows libraries
+        id: windows_deps
+        if: runner.os == 'Windows'
+        uses: actions/cache/restore@v6.1.0
+        with:
+          path: C:\gpflash_deps
+          key: windows-deps-${{ hashFiles('python/ci/install_deps_windows.ps1') }}
+      - uses: pypa/cibuildwheel@v4.2.1
+        env:
+          # The oldest macOS the wheel runs on. It must not be older than the Homebrew libraries delocate bundles,
+          # which are built for the runner's own macOS.
+          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macos_deployment_target }}
+      - name: Check Windows libraries
+        id: windows_deps_check
+        if: always() && runner.os == 'Windows' && steps.windows_deps.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: if (Test-Path C:\gpflash_deps\gpflash_deps_complete) { "complete=true" >> $env:GITHUB_OUTPUT }
+      - name: Save Windows libraries
+        if: always() && steps.windows_deps_check.outputs.complete == 'true'
+        uses: actions/cache/save@v6.1.0
+        with:
+          path: C:\gpflash_deps
+          key: windows-deps-${{ hashFiles('python/ci/install_deps_windows.ps1') }}
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: wheels-${{ matrix.os }}
+          path: ./wheelhouse/*.whl
+
+  build_sdist:
+    name: Source distribution
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.13"
+      - run: python -m pip install build
+      - run: python -m build --sdist
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+
+  publish_pypi:
+    name: Publish to PyPI
+    needs: [build_wheels, build_sdist]
+    if: github.repository == 'marchildon/gpflash' && github.event_name == 'release' && github.event.action == 'published'
+    runs-on: ubuntu-24.04
+    environment:
+      name: pypi
+      url: https://pypi.org/p/gpflash
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8.0.1
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: pypa/gh-action-pypi-publish@v1.14.2
+        with:
+          skip-existing: true  # a rerun after a partial upload skips what is already there
+
+  publish_testpypi:
+    name: Publish to TestPyPI
+    needs: [build_wheels, build_sdist]
+    if: github.repository == 'marchildon/gpflash' && github.event_name == 'workflow_dispatch' && inputs.publish_to_testpypi && inputs.platforms == 'all'
+    runs-on: ubuntu-24.04
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/gpflash
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8.0.1
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: pypa/gh-action-pypi-publish@v1.14.2
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true

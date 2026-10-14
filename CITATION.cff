@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you use GpFlash, please cite the paper below."
+type: software
+title: GpFlash
+abstract: >-
+  Header-only C++ library for exact, dense Gaussian process regression: the marginal log
+  likelihood with analytic hyperparameter gradients, hyperparameter fitting, and posterior
+  mean and variance, with Python bindings.
+authors:
+  - family-names: Marchildon
+    given-names: André
+repository-code: "https://github.com/marchildon/gpflash"
+license: Apache-2.0
+keywords:
+  - gaussian-process
+  - kriging
+  - surrogate-model
+  - cpp
+  - python
+preferred-citation:
+  type: article
+  title: "GpFlash: Maximizing Speed and Minimizing Memory for Gaussian Process Training and Prediction"
+  authors:
+    - family-names: Marchildon
+      given-names: André
+  year: 2026
+  month: 10
+  url: "https://arxiv.org/abs/2610.16861"
+  doi: 10.48550/arXiv.2610.16861
+  identifiers:
+    - type: other
+      value: "arXiv:2610.16861"
+      description: The arXiv preprint

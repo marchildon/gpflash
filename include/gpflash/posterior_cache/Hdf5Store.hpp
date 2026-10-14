@@ -18,12 +18,18 @@
 #error "The posterior cache requires ARMA_USE_HDF5 (linking GpFlash::GpFlash defines it)"
 #endif
 
-#include <cstdio>   // std::rename, std::remove
-#include <fstream>  // has_file
+#include <algorithm>  // std::find
+#include <cstdio>     // std::rename, std::remove
+#include <fstream>    // has_file
 #include <string>
+#include <vector>  // list_open_files
 
 #include "gpflash/core/Errors.hpp"    // ErrorInvalidInput, which cache_error returns
 #include "gpflash/core/Platform.hpp"  // GPFLASH_RENAME_REPLACES_EXISTING
+
+// A write that fails part way, as on a full disk, also fails to close, and HDF5 keeps the file open. From HDF5 1.12 a
+// second close releases it; on 1.10 that crashes, as does HDF5's own cleanup when the process exits.
+#define GPFLASH_HDF5_CLOSES_AFTER_FAILED_WRITE H5_VERSION_GE(1, 12, 0)
 
 namespace gpflash {
 namespace cache {
@@ -116,6 +122,28 @@ inline void load_doubles_into(
     } else if (read_status < 0) {
         throw cache_error(caller, std::string("cannot read ") + array_name + " from " + path);
     }
+}
+
+// The HDF5 files open now, listed before a write so that after a failure only the files it opened are closed, never
+// the caller's. Empty on HDF5 1.10 (GPFLASH_HDF5_CLOSES_AFTER_FAILED_WRITE).
+inline std::vector<hid_t> list_open_files() {
+    std::vector<hid_t> file_id_vec;
+#if GPFLASH_HDF5_CLOSES_AFTER_FAILED_WRITE
+    const ssize_t n_open = H5Fget_obj_count(H5F_OBJ_ALL, H5F_OBJ_FILE);
+    if (n_open <= 0) return file_id_vec;
+    file_id_vec.resize(static_cast<std::size_t>(n_open));
+    const ssize_t n_listed = H5Fget_obj_ids(H5F_OBJ_ALL, H5F_OBJ_FILE, file_id_vec.size(), file_id_vec.data());
+    file_id_vec.resize(static_cast<std::size_t>(n_listed > 0 ? n_listed : 0));
+#endif
+    return file_id_vec;
+}
+
+// By handle alone: asking a file left open by a failed write even for its name can crash.
+inline void close_files_opened_since(const std::vector<hid_t>& open_before_vec) {
+    const arma::hdf5_misc::hdf5_suspend_printing_errors quiet_hdf5;
+    for (const hid_t file_id : list_open_files())
+        if (std::find(open_before_vec.begin(), open_before_vec.end(), file_id) == open_before_vec.end())
+            H5Fclose(file_id);
 }
 
 // A string, stored as bytes. Absent and empty are the same state: an empty string writes nothing, and a

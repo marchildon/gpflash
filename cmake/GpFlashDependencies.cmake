@@ -18,8 +18,20 @@ set(BLA_SIZEOF_INTEGER 4)
 gpflash_find_dependency(BLAS)
 gpflash_find_dependency(LAPACK)
 
-# The cache format's storage, through the C API.
+# The cache format's storage, through the C API. Where HDF5's own package config is found, its target is linked:
+# FindHDF5's hdf5::hdf5 then drops the H5_BUILT_AS_DYNAMIC_LIB define that target carries, without which a Windows
+# build cannot link a shared HDF5's data symbols (H5T_NATIVE_DOUBLE_g ...). Otherwise hdf5::hdf5.
 gpflash_find_dependency(HDF5 COMPONENTS C)
+if(NOT TARGET GpFlash::HDF5)
+    if(HDF5_C_LIBRARIES AND TARGET "${HDF5_C_LIBRARIES}")
+        set(_gpflash_hdf5_target "${HDF5_C_LIBRARIES}")
+    else()
+        set(_gpflash_hdf5_target hdf5::hdf5)
+    endif()
+    add_library(GpFlash::HDF5 INTERFACE IMPORTED)
+    set_target_properties(GpFlash::HDF5 PROPERTIES INTERFACE_LINK_LIBRARIES ${_gpflash_hdf5_target})
+    unset(_gpflash_hdf5_target)
+endif()
 
 # The optimizer backend behind OptimizerNlopt.hpp, which uses nlopt.hpp only. A distribution may install NLopt's
 # C++-built variant, whose config names NLopt::nlopt_cxx, so either target serves.

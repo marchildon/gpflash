@@ -5,11 +5,12 @@
 #include "GpFlashTestSupport.hpp"
 #include "gpflash/Version.hpp"
 
-// The build passes project()'s version; the header is the other copy.
+// The build passes project()'s version, which CMakeLists.txt parses from this header; a parse that went wrong
+// fails here.
 static_assert(
         GPFLASH_VERSION_MAJOR == GPFLASH_CMAKE_VERSION_MAJOR && GPFLASH_VERSION_MINOR == GPFLASH_CMAKE_VERSION_MINOR
                 && GPFLASH_VERSION_PATCH == GPFLASH_CMAKE_VERSION_PATCH,
-        "Version.hpp and project(GpFlash VERSION ...) in CMakeLists.txt disagree");
+        "CMakeLists.txt read a version from Version.hpp that differs from its macros");
 
 using gpflash_test::kDetailLen;
 using gpflash_test::report;

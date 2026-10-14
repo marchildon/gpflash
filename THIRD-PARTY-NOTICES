@@ -15,3 +15,10 @@ OpenMP runtime   the compiler's: GCC's libgomp under GPL-3.0 with the
 Used only by the tests:
 
 MPICH            BSD-style (MPICH license)                              https://www.mpich.org
+
+Python wheels:
+
+The binary wheels published on PyPI are an exception: each contains compiled copies of the libraries above, plus
+pybind11 (BSD-3-Clause, https://github.com/pybind/pybind11), linked into the module or bundled beside it. Their NLopt
+is built without the Luksan routines, so it is MIT-licensed. python/LICENSES_bundled.txt, also in every wheel, lists
+what each platform's wheel contains and reproduces each library's license.

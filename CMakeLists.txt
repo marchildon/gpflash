@@ -3,8 +3,11 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-# Also in include/gpflash/Version.hpp; test_gpflash_version fails to compile if the two disagree.
-project(GpFlash VERSION 0.1.0 LANGUAGES CXX)
+# The version is set once, in include/gpflash/Version.hpp; CMake and pyproject.toml both read it from there.
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/include/gpflash/Version.hpp _gpflash_version_hpp)
+string(REGEX MATCH "MAJOR ([0-9]+)\n#define GPFLASH_VERSION_MINOR ([0-9]+)\n#define GPFLASH_VERSION_PATCH ([0-9]+)"
+       _ "${_gpflash_version_hpp}")
+project(GpFlash VERSION ${CMAKE_MATCH_1}.${CMAKE_MATCH_2}.${CMAKE_MATCH_3} LANGUAGES CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # The package's own targets, the tests, compile as ISO C++14 (-std=c++14, not the compiler's gnu++14 default), so a
@@ -87,7 +90,7 @@ target_link_libraries(GpFlash INTERFACE
     OpenMP::OpenMP_CXX
     LAPACK::LAPACK
     BLAS::BLAS
-    hdf5::hdf5
+    GpFlash::HDF5
     GpFlash::NLopt)
 
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} FILES_MATCHING PATTERN "*.hpp")
@@ -102,8 +105,7 @@ install(EXPORT GpFlash-export
         DESTINATION ${GPFLASH_INSTALL_CMAKEDIR}
         FILE GpFlashTargets.cmake)
 configure_file(cmake/GpFlashConfig.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/GpFlashConfig.cmake @ONLY)
-# While the major version is 0, a minor release may break the interface, so find_package(GpFlash 0.1) accepts
-# only 0.1.x.
+# Before 1.0 a minor release may break the interface, so a request for 0.Y accepts only 0.Y.x.
 write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/GpFlashConfigVersion.cmake
                                  COMPATIBILITY SameMinorVersion
                                  ARCH_INDEPENDENT)
@@ -112,6 +114,13 @@ install(FILES
         ${CMAKE_CURRENT_BINARY_DIR}/GpFlashConfigVersion.cmake
         cmake/GpFlashDependencies.cmake
         DESTINATION ${GPFLASH_INSTALL_CMAKEDIR})
+
+# The Python module gpflash._core: built when pip drives this file through scikit-build-core (pyproject.toml), which
+# defines SKBUILD, or on request. A C++ consumer never needs Python.
+option(GPFLASH_BUILD_PYTHON "Build the Python module gpflash._core" OFF)
+if(GPFLASH_BUILD_PYTHON OR DEFINED SKBUILD)
+    add_subdirectory(python)
+endif()
 
 # Only for this project's own build: a parent project's add_subdirectory builds none of the tests.
 if(PROJECT_IS_TOP_LEVEL)

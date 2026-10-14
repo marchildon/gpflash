@@ -59,7 +59,9 @@ inline void write_precompute_file(
     std::remove(temp_path.c_str());  // a temp left by an earlier crash would otherwise be appended to
 
     // Headers, then arrays. Armadillo closes the file after every array, so it is flushed before the rename.
-    // A throw part way through removes the partial scratch file, so a failed save leaves nothing behind.
+    // A throw part way through closes what this save left open and removes the scratch file, so a failed save leaves
+    // nothing behind.
+    const std::vector<hid_t> open_before_vec = list_open_files();
     try {
         save_cache_info(temp_path, cache_info, "save_precompute");
         apply_to_named_arrays(post_precompute, [&temp_path](const char* array_name, const auto& data_array) {
@@ -70,6 +72,7 @@ inline void write_precompute_file(
             save_array(temp_path, L_Sigma_packed_name, L_Sigma_packed_vec, "save_precompute");
         }
     } catch (...) {
+        close_files_opened_since(open_before_vec);
         std::remove(temp_path.c_str());
         throw;
     }

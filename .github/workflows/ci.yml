@@ -1,0 +1,55 @@
+# Builds the C++ library and runs its tests (ctest) on Linux and macOS, after every push to main.
+#
+# Linux installs everything the tests can use, so it runs the full suite: the formatting check with clang-format 15
+# and the MPI optimizer test with MPICH. macOS runs the rest, with Apple clang and Homebrew's libraries, as the README's
+# macOS build does. A manual run (workflow_dispatch) tests any branch on request.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build_and_test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux (GCC)
+            os: ubuntu-24.04
+          - name: macOS (Apple clang)
+            os: macos-15
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ libarmadillo-dev libopenblas-dev libhdf5-dev libnlopt-cxx-dev \
+              clang-format-15 mpich libmpich-dev
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install armadillo libomp hdf5 nlopt
+
+      - name: Configure (Linux)
+        if: runner.os == 'Linux'
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      # The MPI test runs on Linux only: the macOS runner has too few cores for its 4 processes.
+      - name: Configure (macOS)
+        if: runner.os == 'macOS'
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DOpenMP_ROOT="$(brew --prefix libomp)" -DGPFLASH_BUILD_MPI_TEST=OFF
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure

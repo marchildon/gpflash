@@ -77,7 +77,7 @@ foreach(_test IN LISTS GPFLASH_TESTS)
     gpflash_add_test_executable(${_test})
     add_test(NAME ${_test} COMMAND ${_test})
 endforeach()
-# project()'s version, for the static_assert against Version.hpp.
+# project()'s version, which CMakeLists.txt reads from Version.hpp; the static_assert checks that read.
 target_compile_definitions(test_gpflash_version
                            PRIVATE GPFLASH_CMAKE_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
                                    GPFLASH_CMAKE_VERSION_MINOR=${PROJECT_VERSION_MINOR}
@@ -159,13 +159,16 @@ if(GPFLASH_MPI_FOUND)
     add_test(NAME ${GPFLASH_MPI_TEST}
              COMMAND ${GPFLASH_MPIEXEC} ${GPFLASH_MPIEXEC_NUMPROC_FLAG} ${GPFLASH_MPI_TEST_N_PROC}
                      $<TARGET_FILE:${GPFLASH_MPI_TEST}>)
-    set(_thread_env
+    # The processes share one machine, so UCX, the transport MPICH and Open MPI may use, needs only shared memory.
+    # Left to choose, it may pick an RDMA device a machine lists but cannot use, and MPI_Init then fails.
+    set(_mpi_test_env
         OMP_NUM_THREADS=${GPFLASH_MPI_TEST_THREADS_PER_PROC}
-        OPENBLAS_NUM_THREADS=${GPFLASH_MPI_TEST_THREADS_PER_PROC})
+        OPENBLAS_NUM_THREADS=${GPFLASH_MPI_TEST_THREADS_PER_PROC}
+        UCX_TLS=self,sm)
     set_tests_properties(${GPFLASH_MPI_TEST} PROPERTIES
         TIMEOUT ${GPFLASH_MPI_TEST_TIMEOUT_S}
         PROCESSORS ${GPFLASH_MPI_TEST_N_PROC}
-        ENVIRONMENT "${_thread_env}")
+        ENVIRONMENT "${_mpi_test_env}")
 else()
     message(STATUS "GpFlash: no MPI library and launcher, or GPFLASH_BUILD_MPI_TEST is off, so ${GPFLASH_MPI_TEST} "
                    "is not registered.")

@@ -5,9 +5,11 @@ hyperparameter gradients, posterior mean and variance, and hyperparameter fittin
 exact — see [Assumptions and limitations](#assumptions-and-limitations).
 
 The algorithms are those of **"GpFlash: Maximizing Speed and Minimizing Memory for
-Gaussian Process Training and Prediction"**, A. Marchildon — referred to throughout as
+Gaussian Process Training and Prediction"**, A. Marchildon
+([arXiv:2610.16861](https://arxiv.org/abs/2610.16861)) — referred to throughout as
 **the GpFlash paper**. It derives the model, the marginal log likelihood and every
-gradient expression, which this README does not restate.
+gradient expression, which this README does not restate. If you use GpFlash, please cite
+it; GitHub's "Cite this repository" button, from `CITATION.cff`, gives the reference.
 
 ## Requirements
 
@@ -278,7 +280,7 @@ headers need, so a consumer sets none of them:
 cmake --install build --prefix <dir>
 ```
 ```cmake
-find_package(GpFlash 0.1 CONFIG REQUIRED)  # with <dir> on CMAKE_PREFIX_PATH
+find_package(GpFlash CONFIG REQUIRED)  # with <dir> on CMAKE_PREFIX_PATH
 target_link_libraries(app PRIVATE GpFlash::GpFlash)
 ```
 A parent project can instead `add_subdirectory` the package, which builds no tests, and link the same target.
@@ -314,6 +316,12 @@ Do not use `-ffast-math` or `-Ofast`: they fold `std::isfinite` to true, which d
 `core/Platform.hpp` rejects them.
 
 Link BLAS, LAPACK and HDF5's C library, and NLopt when `optimization/` is included.
+
+## Python
+
+`pip install gpflash` installs Python bindings with every dependency included. They offer a NumPy-style
+`GaussianProcess` (`fit`, `predict`, `save`, `load`) and the C++ interface above under its C++ names and shapes.
+[`python/README.md`](python/README.md) covers both, and building them from source.
 
 ## License
 

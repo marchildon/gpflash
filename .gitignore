@@ -6,3 +6,10 @@
 
 # macOS Finder metadata.
 .DS_Store
+
+# Python: bytecode, test caches, and the sdist and wheels python -m build writes. build_python/, where pip builds
+# the module, matches the build-directory rule above.
+__pycache__/
+.pytest_cache/
+/dist/
+*.egg-info/

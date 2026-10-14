@@ -23,8 +23,8 @@
 // glibc declares its SIMD exp, log, pow, sin and cos only under __FAST_MATH__; without them GCC cannot vectorize the
 // kernel loops. Needs -fno-math-errno. GPFLASH_NO_VECTOR_MATH keeps the scalar versions.
 #include <cmath>
-#if defined(__GNUC__) && !defined(__clang__) && defined(__x86_64__) && defined(__GLIBC__) \
-        && !defined(__FAST_MATH__) && !defined(GPFLASH_NO_VECTOR_MATH)
+#if defined(__GNUC__) && !defined(__clang__) && defined(__x86_64__) && defined(__GLIBC__) && !defined(__FAST_MATH__) \
+        && !defined(GPFLASH_NO_VECTOR_MATH)
 extern "C" {
 __attribute__((__simd__("notinbranch"))) double exp(double) noexcept;
 __attribute__((__simd__("notinbranch"))) double log(double) noexcept;
