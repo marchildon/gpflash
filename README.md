@@ -1,5 +1,10 @@
 # GpFlash
 
+[![PyPI](https://img.shields.io/pypi/v/gpflash)](https://pypi.org/project/gpflash/)
+[![CI](https://github.com/marchildon/gpflash/actions/workflows/ci.yml/badge.svg)](https://github.com/marchildon/gpflash/actions/workflows/ci.yml)
+[![Wheels](https://github.com/marchildon/gpflash/actions/workflows/wheels.yml/badge.svg)](https://github.com/marchildon/gpflash/actions/workflows/wheels.yml)
+[![arXiv](https://img.shields.io/badge/arXiv-2610.16861-b31b1b)](https://arxiv.org/abs/2610.16861)
+
 Header-only C++ Gaussian process library: marginal log-likelihood (MLL) with analytic
 hyperparameter gradients, posterior mean and variance, and hyperparameter fitting. Dense and
 exact — see [Assumptions and limitations](#assumptions-and-limitations).
@@ -11,6 +16,32 @@ Gaussian Process Training and Prediction"**, A. Marchildon
 gradient expression, which this README does not restate. If you use GpFlash, please cite
 it; GitHub's "Cite this repository" button, from `CITATION.cff`, gives the reference.
 
+From Python, `pip install gpflash` installs it with every dependency included:
+
+```python
+import numpy as np
+import gpflash
+
+n_dim = 2
+n_train = 50
+n_post = 100
+
+# Training data: n_train points, one per row, and the function's values there.
+rng = np.random.default_rng(0)
+X_train_mat = rng.random((n_train, n_dim))
+f_train_vec = np.sin(3 * X_train_mat[:, 0]) + X_train_mat[:, 1] ** 2
+
+gp = gpflash.GaussianProcess().fit(X_train_mat, f_train_vec)  # the Matern 5/2 kernel and a constant mean
+
+# The posterior mean and variance at n_post new points.
+X_post_mat = rng.random((n_post, n_dim))
+posterior_prediction = gp.predict(X_post_mat)
+mean_post_vec = posterior_prediction.mean_post_vec  # (n_post)
+var_post_vec = posterior_prediction.var_post_vec  # (n_post)
+```
+
+[`python/README.md`](python/README.md) covers the Python package; the rest of this README covers the C++ library.
+
 ## Requirements
 
 C++14, Armadillo 9.870 or later, a BLAS/LAPACK with the standard 32-bit integer interface (Accelerate on macOS and
@@ -21,20 +52,21 @@ OpenBLAS elsewhere by default; not an ILP64 build such as openblas64), OpenMP, H
 
 ## Kernels
 
-`ModelOptions::kernel_id` selects one. Every kernel fits `hp_gamma`, one per dimension: an inverse
-length scale, or for `Periodic` an inverse period. `hp_kern_extra` holds whatever else it
-declares. `ModelOptions::symmetry_spec` gives a kernel that supports it an even or odd mirror
-symmetry about an axis-aligned plane.
+`ModelOptions::kernel_id` selects one; `parse_kernel_id` turns a name into a `KernelId`, in C++ and
+Python. Every kernel fits `hp_gamma`, one per dimension: an inverse length scale, or
+for `Periodic` an inverse period. `hp_kern_extra` holds whatever else it declares.
+`ModelOptions::symmetry_spec` gives a kernel that supports it an even or odd mirror symmetry about
+an axis-aligned plane.
 
-| `KernelId` | kernel | type | `hp_kern_extra` | symmetry |
-|---|---|---|---|---|
-| `SqExp` | squared exponential | radial | none | yes |
-| `Matern52` | Matérn 5/2, the default | radial | none | yes |
-| `Matern32` | Matérn 3/2 | radial | none | yes |
-| `RatQuad` | rational quadratic | radial | the shape `hp_rho` | yes |
-| `Periodic` | periodic | stationary | one amplitude per dimension | yes |
-| `Linear` | inhomogeneous linear | inner product | none | no |
-| `Quadratic` | inhomogeneous quadratic | inner product | none | no |
+| `KernelId` | name | kernel | type | `hp_kern_extra` | symmetry |
+|---|---|---|---|---|---|
+| `SqExp` | `sq_exp` | squared exponential | radial | none | yes |
+| `Matern52` | `matern_5_2` | Matérn 5/2, the default | radial | none | yes |
+| `Matern32` | `matern_3_2` | Matérn 3/2 | radial | none | yes |
+| `RatQuad` | `rat_quad` | rational quadratic | radial | the shape `hp_rho` | yes |
+| `Periodic` | `periodic` | periodic | stationary | one amplitude per dimension | yes |
+| `Linear` | `linear` | inhomogeneous linear | inner product | none | no |
+| `Quadratic` | `quadratic` | inhomogeneous quadratic | inner product | none | no |
 
 Radial kernels are functions of the scaled distance alone. An inner-product kernel's diagonal
 varies with the point. Adding a kernel means one header under `kernels/`, one entry in
@@ -316,12 +348,6 @@ Do not use `-ffast-math` or `-Ofast`: they fold `std::isfinite` to true, which d
 `core/Platform.hpp` rejects them.
 
 Link BLAS, LAPACK and HDF5's C library, and NLopt when `optimization/` is included.
-
-## Python
-
-`pip install gpflash` installs Python bindings with every dependency included. They offer a NumPy-style
-`GaussianProcess` (`fit`, `predict`, `save`, `load`) and the C++ interface above under its C++ names and shapes.
-[`python/README.md`](python/README.md) covers both, and building them from source.
 
 ## License
 

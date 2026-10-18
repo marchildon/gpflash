@@ -2,6 +2,7 @@
 GpFlash C++ bindings. Names and shapes follow the C++ interface; see the gpflash package for the NumPy-style GaussianProcess wrapper.
 """
 from __future__ import annotations
+import enum
 import numpy
 import numpy.typing
 import typing
@@ -12,25 +13,9 @@ class NumericalFailureError(ArithmeticError):
     pass
 class NotImplementedFeatureError(NotImplementedError):
     pass
-class KernelId:
+class KernelId(enum.Enum):
     """
     Which kernel a model uses.
-    
-    Members:
-    
-      SqExp
-    
-      Matern52
-    
-      Matern32
-    
-      RatQuad
-    
-      Periodic
-    
-      Linear
-    
-      Quadratic
     """
     Linear: typing.ClassVar[KernelId]
     Matern32: typing.ClassVar[KernelId]
@@ -39,134 +24,26 @@ class KernelId:
     Quadratic: typing.ClassVar[KernelId]
     RatQuad: typing.ClassVar[KernelId]
     SqExp: typing.ClassVar[KernelId]
-    __members__: typing.ClassVar[dict[str, KernelId]]
-    @typing.overload
-    def __eq__(self, other: KernelId) -> bool:
+    @classmethod
+    def __new__(cls, value):
         ...
-    @typing.overload
-    def __eq__(self, other: typing.Any) -> bool:
-        ...
-    def __getstate__(self) -> int:
-        ...
-    def __hash__(self) -> int:
-        ...
-    def __index__(self) -> int:
-        ...
-    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
-        ...
-    def __int__(self) -> int:
-        ...
-    @typing.overload
-    def __ne__(self, other: KernelId) -> bool:
-        ...
-    @typing.overload
-    def __ne__(self, other: typing.Any) -> bool:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
-        ...
-    def __str__(self) -> str:
-        ...
-    @property
-    def name(self) -> str:
-        ...
-    @property
-    def value(self) -> int:
-        ...
-class EigMaxUbMethod:
+class EigMaxUbMethod(enum.Enum):
     """
     The bound on lambda_max a nugget is sized from.
-    
-    Members:
-    
-      Gershgorin
-    
-      Trace
     """
     Gershgorin: typing.ClassVar[EigMaxUbMethod]
     Trace: typing.ClassVar[EigMaxUbMethod]
-    __members__: typing.ClassVar[dict[str, EigMaxUbMethod]]
-    @typing.overload
-    def __eq__(self, other: EigMaxUbMethod) -> bool:
+    @classmethod
+    def __new__(cls, value):
         ...
-    @typing.overload
-    def __eq__(self, other: typing.Any) -> bool:
-        ...
-    def __getstate__(self) -> int:
-        ...
-    def __hash__(self) -> int:
-        ...
-    def __index__(self) -> int:
-        ...
-    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
-        ...
-    def __int__(self) -> int:
-        ...
-    @typing.overload
-    def __ne__(self, other: EigMaxUbMethod) -> bool:
-        ...
-    @typing.overload
-    def __ne__(self, other: typing.Any) -> bool:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
-        ...
-    def __str__(self) -> str:
-        ...
-    @property
-    def name(self) -> str:
-        ...
-    @property
-    def value(self) -> int:
-        ...
-class NumericalOptzAlgorithm:
+class NumericalOptzAlgorithm(enum.Enum):
     """
     The algorithm each local solve uses.
-    
-    Members:
-    
-      Sqp
-    
-      Ccsaq
     """
     Ccsaq: typing.ClassVar[NumericalOptzAlgorithm]
     Sqp: typing.ClassVar[NumericalOptzAlgorithm]
-    __members__: typing.ClassVar[dict[str, NumericalOptzAlgorithm]]
-    @typing.overload
-    def __eq__(self, other: NumericalOptzAlgorithm) -> bool:
-        ...
-    @typing.overload
-    def __eq__(self, other: typing.Any) -> bool:
-        ...
-    def __getstate__(self) -> int:
-        ...
-    def __hash__(self) -> int:
-        ...
-    def __index__(self) -> int:
-        ...
-    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
-        ...
-    def __int__(self) -> int:
-        ...
-    @typing.overload
-    def __ne__(self, other: NumericalOptzAlgorithm) -> bool:
-        ...
-    @typing.overload
-    def __ne__(self, other: typing.Any) -> bool:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
-        ...
-    def __str__(self) -> str:
-        ...
-    @property
-    def name(self) -> str:
-        ...
-    @property
-    def value(self) -> int:
+    @classmethod
+    def __new__(cls, value):
         ...
 class TrainingData:
     """
@@ -180,6 +57,8 @@ class TrainingData:
         """
         A copy.
         """
+    def __repr__(self) -> str:
+        ...
     @property
     def X_ndim_ntrain_mat(self) -> numpy.typing.NDArray[numpy.float64]:
         """
@@ -216,6 +95,8 @@ class HpVal:
         """
         A copy.
         """
+    def __repr__(self) -> str:
+        ...
     @property
     def hp_gamma_vec(self) -> numpy.typing.NDArray[numpy.float64]:
         """
@@ -479,6 +360,8 @@ class MllResult:
     """
     What eval_mll returns.
     """
+    def __repr__(self) -> str:
+        ...
     @property
     def hp_beta_vec(self) -> numpy.typing.NDArray[numpy.float64]:
         """
@@ -496,58 +379,16 @@ class MllResult:
     @property
     def mll_hp_grad_struct(self) -> MllHpGrad:
         ...
-class OptzStopReason:
+class OptzStopReason(enum.Enum):
     """
     Why a local solve stopped.
-    
-    Members:
-    
-      ToleranceMet
-    
-      EvalBudgetSpent
-    
-      RoundoffLimited
-    
-      Failed
     """
     EvalBudgetSpent: typing.ClassVar[OptzStopReason]
     Failed: typing.ClassVar[OptzStopReason]
     RoundoffLimited: typing.ClassVar[OptzStopReason]
     ToleranceMet: typing.ClassVar[OptzStopReason]
-    __members__: typing.ClassVar[dict[str, OptzStopReason]]
-    @typing.overload
-    def __eq__(self, other: OptzStopReason) -> bool:
-        ...
-    @typing.overload
-    def __eq__(self, other: typing.Any) -> bool:
-        ...
-    def __getstate__(self) -> int:
-        ...
-    def __hash__(self) -> int:
-        ...
-    def __index__(self) -> int:
-        ...
-    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
-        ...
-    def __int__(self) -> int:
-        ...
-    @typing.overload
-    def __ne__(self, other: OptzStopReason) -> bool:
-        ...
-    @typing.overload
-    def __ne__(self, other: typing.Any) -> bool:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
-        ...
-    def __str__(self) -> str:
-        ...
-    @property
-    def name(self) -> str:
-        ...
-    @property
-    def value(self) -> int:
+    @classmethod
+    def __new__(cls, value):
         ...
 class LocalOptzResult:
     """
@@ -670,60 +511,22 @@ class PosteriorResult:
         """
         (n_post), or empty.
         """
-class SymmetryKind:
+class SymmetryKind(enum.Enum):
     """
     The symmetry a cache file records.
-    
-    Members:
-    
-      None_
-    
-      Even
-    
-      Odd
     """
     Even: typing.ClassVar[SymmetryKind]
     None_: typing.ClassVar[SymmetryKind]
     Odd: typing.ClassVar[SymmetryKind]
-    __members__: typing.ClassVar[dict[str, SymmetryKind]]
-    @typing.overload
-    def __eq__(self, other: SymmetryKind) -> bool:
-        ...
-    @typing.overload
-    def __eq__(self, other: typing.Any) -> bool:
-        ...
-    def __getstate__(self) -> int:
-        ...
-    def __hash__(self) -> int:
-        ...
-    def __index__(self) -> int:
-        ...
-    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
-        ...
-    def __int__(self) -> int:
-        ...
-    @typing.overload
-    def __ne__(self, other: SymmetryKind) -> bool:
-        ...
-    @typing.overload
-    def __ne__(self, other: typing.Any) -> bool:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
-        ...
-    def __str__(self) -> str:
-        ...
-    @property
-    def name(self) -> str:
-        ...
-    @property
-    def value(self) -> int:
+    @classmethod
+    def __new__(cls, value):
         ...
 class PosteriorModelInfo:
     """
     The model a posterior was fitted to, and what that fit scored.
     """
+    def __repr__(self) -> str:
+        ...
     def to_summary_string(self) -> str:
         ...
     @property

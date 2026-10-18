@@ -3,7 +3,7 @@
 # the wheel, so the headers and CMake package files the root installs stay out of it.
 
 find_package(Python 3.11 REQUIRED COMPONENTS Interpreter Development.Module)
-find_package(pybind11 CONFIG REQUIRED)
+find_package(pybind11 3.0 CONFIG REQUIRED)  # 3.0 for py::native_enum; pyproject.toml requires the same
 
 pybind11_add_module(gpflash_python MODULE src/bindings.cpp)
 set_target_properties(gpflash_python PROPERTIES OUTPUT_NAME _core)

@@ -10,7 +10,7 @@
 #include "gpflash/core/Platform.hpp"  // GPFLASH_STR
 
 #define GPFLASH_VERSION_MAJOR 0
-#define GPFLASH_VERSION_MINOR 2
+#define GPFLASH_VERSION_MINOR 3
 #define GPFLASH_VERSION_PATCH 0
 
 namespace gpflash {

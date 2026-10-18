@@ -1,0 +1,25 @@
+# Runs the C++ CI and the wheel builds every Saturday at 15:00 UTC (8:00 Pacific daylight time), in marchildon/gpflash
+# only, not in forks or copies. It catches changes to GitHub's runners and to Homebrew before a release does, and keeps
+# the Windows dependency cache from expiring. A failure emails whoever last changed the schedule below.
+name: Weekly
+
+on:
+  schedule:
+    - cron: "0 15 * * 6"
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    if: github.repository == 'marchildon/gpflash'
+    uses: ./.github/workflows/ci.yml
+
+  wheels:
+    if: github.repository == 'marchildon/gpflash'
+    uses: ./.github/workflows/wheels.yml
+    # wheels.yml's PyPI job declares id-token: write, and a called workflow may not ask for more than its caller
+    # grants. That job runs only on a published release, so a weekly run never publishes.
+    permissions:
+      contents: read
+      id-token: write

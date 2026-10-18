@@ -54,7 +54,7 @@ from ._core import (
     select_hp_with_max_mll,
     to_multistart_report_string,
 )
-from ._gp import GaussianProcess
+from ._gp import GaussianProcess, PosteriorPrediction
 
 __all__ = [
     "COND_MAX_DEFAULT",
@@ -80,6 +80,7 @@ __all__ = [
     "OptzStopReason",
     "PosteriorModelInfo",
     "PosteriorOptions",
+    "PosteriorPrediction",
     "PosteriorResult",
     "SymmetryKind",
     "SymmetrySpec",

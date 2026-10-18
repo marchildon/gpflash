@@ -1,6 +1,6 @@
 # Builds the Python wheels and sdist and tests each wheel, after every push to main, and publishes to PyPI when a
 # GitHub release is published. A manual run (workflow_dispatch) tests any branch, and can publish to TestPyPI to try a
-# release first. Pull requests do not run it: a run takes several hundred billed minutes on a private repository.
+# release first. Pull requests do not run it, since a full run takes over an hour of runner time.
 #
 # Publishing uses PyPI trusted publishing: no token is stored. Before the first release, add this repository and
 # workflow (wheels.yml, environment "pypi") as a trusted publisher on the PyPI project, and likewise on TestPyPI with
@@ -12,6 +12,7 @@ on:
     branches: [main]
   release:
     types: [published]
+  workflow_call:  # from weekly.yml; builds every platform and never publishes
   workflow_dispatch:
     inputs:
       platforms:

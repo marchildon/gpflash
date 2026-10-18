@@ -11,5 +11,6 @@
 # the module, matches the build-directory rule above.
 __pycache__/
 .pytest_cache/
+.ruff_cache/
 /dist/
 *.egg-info/

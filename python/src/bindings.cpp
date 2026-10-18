@@ -12,6 +12,7 @@
  * Serial only: the module is built without GPFLASH_HAVE_MPI, so a fit runs on the calling process. MPI stays with
  * the C++ library.
  */
+#include <pybind11/native_enum.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
@@ -167,22 +168,28 @@ PYBIND11_MODULE(_core, m) {
     py::register_exception<gpflash::ErrorNotImplemented>(m, "NotImplementedFeatureError", PyExc_NotImplementedError);
 
     // ── Enums ────────────────────────────────────────────────────────────────
-    py::enum_<gpflash::kernel::KernelId>(m, "KernelId", "Which kernel a model uses.")
+    // Native enums: each is an enum.Enum subclass, so KernelId["SqExp"] and match statements work.
+    py::native_enum<gpflash::kernel::KernelId>(m, "KernelId", "enum.Enum", "Which kernel a model uses.")
             .value("SqExp", gpflash::kernel::KernelId::SqExp)
             .value("Matern52", gpflash::kernel::KernelId::Matern52)
             .value("Matern32", gpflash::kernel::KernelId::Matern32)
             .value("RatQuad", gpflash::kernel::KernelId::RatQuad)
             .value("Periodic", gpflash::kernel::KernelId::Periodic)
             .value("Linear", gpflash::kernel::KernelId::Linear)
-            .value("Quadratic", gpflash::kernel::KernelId::Quadratic);
+            .value("Quadratic", gpflash::kernel::KernelId::Quadratic)
+            .finalize();
 
-    py::enum_<gpflash::EigMaxUbMethod>(m, "EigMaxUbMethod", "The bound on lambda_max a nugget is sized from.")
+    py::native_enum<gpflash::EigMaxUbMethod>(
+            m, "EigMaxUbMethod", "enum.Enum", "The bound on lambda_max a nugget is sized from.")
             .value("Gershgorin", gpflash::EigMaxUbMethod::Gershgorin)
-            .value("Trace", gpflash::EigMaxUbMethod::Trace);
+            .value("Trace", gpflash::EigMaxUbMethod::Trace)
+            .finalize();
 
-    py::enum_<gpflash::NumericalOptzAlgorithm>(m, "NumericalOptzAlgorithm", "The algorithm each local solve uses.")
+    py::native_enum<gpflash::NumericalOptzAlgorithm>(
+            m, "NumericalOptzAlgorithm", "enum.Enum", "The algorithm each local solve uses.")
             .value("Sqp", gpflash::NumericalOptzAlgorithm::Sqp)
-            .value("Ccsaq", gpflash::NumericalOptzAlgorithm::Ccsaq);
+            .value("Ccsaq", gpflash::NumericalOptzAlgorithm::Ccsaq)
+            .finalize();
 
     // ── Kernels ──────────────────────────────────────────────────────────────
     m.def("kernel_name",
@@ -220,6 +227,10 @@ PYBIND11_MODULE(_core, m) {
             "sig2_f_val",
             &gpflash::TrainingData::sig2_f_val,
             "Noise variance: 0 noise-free, > 0 known and fixed, < 0 estimated by the fit.");
+    training_data.def("__repr__", [](const gpflash::TrainingData& data) {
+        return py::str("TrainingData(n_dim={}, n_train={}, sig2_f_val={})")
+                .format(data.X_ndim_ntrain_mat.n_rows, data.X_ndim_ntrain_mat.n_cols, data.sig2_f_val);
+    });
 
     py::class_<gpflash::HpVal> hp_val(m, "HpVal", "The hyperparameters.");
     hp_val.def(py::init<>());
@@ -239,6 +250,13 @@ PYBIND11_MODULE(_core, m) {
             "hp_kern_extra_vec",
             &gpflash::HpVal::hp_kern_extra_vec,
             "(n_hp_kern_extra) the kernel's extra hyperparameters, or empty.");
+    hp_val.def("__repr__", [](const gpflash::HpVal& hp) {
+        return py::str("HpVal(hp_sig2_k={}, hp_sig2_f_val={}, hp_gamma_vec={}, hp_kern_extra_vec={})")
+                .format(hp.hp_sig2_k,
+                        hp.hp_sig2_f_val,
+                        to_numpy(hp.hp_gamma_vec).attr("tolist")(),
+                        to_numpy(hp.hp_kern_extra_vec).attr("tolist")());
+    });
 
     py::class_<gpflash::SymmetrySpec> symmetry_spec(m, "SymmetrySpec", "An axis-aligned mirror symmetry.");
     symmetry_spec.def(py::init<>());
@@ -330,13 +348,18 @@ PYBIND11_MODULE(_core, m) {
     mll_result.def_readonly("hp_sig2_k_from_closed_form", &gpflash::MllResult::hp_sig2_k_from_closed_form);
     mll_result.def_readonly("hp_sig2_k", &gpflash::MllResult::hp_sig2_k);
     mll_result.def_readonly("mll_hp_grad_struct", &gpflash::MllResult::mll_hp_grad_struct);
+    mll_result.def("__repr__", [](const gpflash::MllResult& result) {
+        return py::str("MllResult(mll={}, hp_sig2_k={}, hp_beta_vec={})")
+                .format(result.mll, result.hp_sig2_k, to_numpy(result.hp_beta_vec).attr("tolist")());
+    });
 
     // ── Fit diagnostics ──────────────────────────────────────────────────────
-    py::enum_<gpflash::OptzStopReason>(m, "OptzStopReason", "Why a local solve stopped.")
+    py::native_enum<gpflash::OptzStopReason>(m, "OptzStopReason", "enum.Enum", "Why a local solve stopped.")
             .value("ToleranceMet", gpflash::OptzStopReason::ToleranceMet)
             .value("EvalBudgetSpent", gpflash::OptzStopReason::EvalBudgetSpent)
             .value("RoundoffLimited", gpflash::OptzStopReason::RoundoffLimited)
-            .value("Failed", gpflash::OptzStopReason::Failed);
+            .value("Failed", gpflash::OptzStopReason::Failed)
+            .finalize();
 
     py::class_<gpflash::LocalOptzResult> local_optz_result(m, "LocalOptzResult", "The outcome of one local solve.");
     def_array_ro(
@@ -445,10 +468,11 @@ PYBIND11_MODULE(_core, m) {
     // ── Cache files ──────────────────────────────────────────────────────────
     // From C++'s gpflash::cache namespace, flattened into the module like the kernel functions.
     // None is a Python keyword, so that value is None_, after PEP 8's trailing underscore.
-    py::enum_<gpflash::cache::SymmetryKind>(m, "SymmetryKind", "The symmetry a cache file records.")
+    py::native_enum<gpflash::cache::SymmetryKind>(m, "SymmetryKind", "enum.Enum", "The symmetry a cache file records.")
             .value("None_", gpflash::cache::SymmetryKind::None)
             .value("Even", gpflash::cache::SymmetryKind::Even)
-            .value("Odd", gpflash::cache::SymmetryKind::Odd);
+            .value("Odd", gpflash::cache::SymmetryKind::Odd)
+            .finalize();
 
     py::class_<gpflash::cache::PosteriorModelInfo> post_model_info(
             m, "PosteriorModelInfo", "The model a posterior was fitted to, and what that fit scored.");
@@ -463,6 +487,10 @@ PYBIND11_MODULE(_core, m) {
             "mean_model_eig_max_ub_method", &gpflash::cache::PosteriorModelInfo::mean_model_eig_max_ub_method);
     post_model_info.def("to_summary_string", [](const gpflash::cache::PosteriorModelInfo& info) {
         return gpflash::cache::to_summary_string(info);
+    });
+    post_model_info.def("__repr__", [](const gpflash::cache::PosteriorModelInfo& info) {
+        return py::str("PosteriorModelInfo(kernel_id={}, mll={}, sig2_f_val={}, cond_max={})")
+                .format(py::cast(info.kernel_id), info.mll, info.sig2_f_val, info.cond_max);
     });
 
     py::class_<gpflash::cache::CacheInfo> cache_info(
